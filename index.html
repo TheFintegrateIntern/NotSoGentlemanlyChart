@@ -4,9 +4,7 @@
   <meta charset="UTF-8" />
   <title>The Not So Gentlemanly Chart</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -41,6 +39,7 @@
     table {
       width: 100%;
       border-collapse: collapse;
+      margin-bottom: 20px;
     }
 
     th, td {
@@ -112,10 +111,22 @@
       background: linear-gradient(to right, #4385e9, #6bc7ff);
     }
 
+    .controls {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .controls input {
+      padding: 8px 14px;
+      border-radius: 20px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+      margin-right: 10px;
+      width: 200px;
+    }
+
     @media (max-width: 600px) {
-      h1 {
-        font-size: 22px;
-      }
+      h1 { font-size: 22px; }
 
       th, td {
         padding: 10px;
@@ -125,6 +136,10 @@
       button {
         font-size: 12px;
         padding: 6px 8px;
+      }
+
+      .controls input {
+        width: 150px;
       }
     }
 
@@ -152,6 +167,13 @@
 <body>
   <div class="container">
     <h1>The Not So Gentlemanly Chart</h1>
+
+    <div class="controls">
+      <input type="text" id="nameInput" placeholder="Enter your name" />
+      <button onclick="addPerson()">➕ Add Me</button>
+      <button onclick="removePerson()">➖ Remove Me</button>
+    </div>
+
     <table id="offenseTable">
       <thead>
         <tr>
@@ -167,14 +189,27 @@
   <div id="toast" class="toast"></div>
 
   <script>
-    const people = ["Willem", "Justin", "Aidan", "Martin", "Loan", "Liam", "Heinn", "Elsie", "Reynard", "Tiaan"];
-    const offenseData = JSON.parse(localStorage.getItem("offenseData")) || {};
+    const defaultPeople = ["Willem", "Justin", "Aidan", "Martin", "Loan", "Liam", "Heinn", "Elsie", "Reynard", "Tiaan"];
+    let offenseData = JSON.parse(localStorage.getItem("offenseData")) || {};
     const tableBody = document.querySelector("#offenseTable tbody");
     const toast = document.getElementById("toast");
 
-    people.forEach(name => {
-      if (!(name in offenseData)) offenseData[name] = 0;
+    function initialize() {
+      for (const name of defaultPeople) {
+        if (!(name in offenseData)) {
+          offenseData[name] = 0;
+        }
+      }
+      renderTable();
+    }
 
+    function renderTable() {
+      tableBody.innerHTML = "";
+      Object.keys(offenseData).sort().forEach(name => addRow(name));
+      localStorage.setItem("offenseData", JSON.stringify(offenseData));
+    }
+
+    function addRow(name) {
       const row = document.createElement("tr");
 
       const nameCell = document.createElement("td");
@@ -208,39 +243,6 @@
 
       tableBody.appendChild(row);
       renderOffenseBlocks(name);
-    });
-
-    function showToast(message) {
-      toast.textContent = message;
-      toast.classList.add("show");
-      setTimeout(() => {
-        toast.classList.remove("show");
-      }, 3000);
-    }
-
-    function changeOffense(name, change) {
-      const current = offenseData[name];
-      const newCount = current + change;
-
-      if (newCount >= 0 && newCount <= 10) {
-        offenseData[name] = newCount;
-        localStorage.setItem("offenseData", JSON.stringify(offenseData));
-        renderOffenseBlocks(name);
-
-        if (change === 1) {
-          if (newCount === 1) {
-            showToast(name === "Elsie"
-              ? 'Elsie, How did this happen'
-              : `This might warrant some pushups, ${name}`);
-          } else if (newCount === 5) {
-            showToast(`HR now knows your location, ${name}`);
-          } else if (newCount === 10) {
-            showToast((name === 'Justin' || name === 'Loan')
-              ? 'Well, Well, Well, how the turn tables'
-              : `Time for Baptism, ${name}. Please report to Justin and Loan for the Cleanse`);
-          }
-        }
-      }
     }
 
     function renderOffenseBlocks(name) {
@@ -268,14 +270,35 @@
       }
     }
 
+    function changeOffense(name, change) {
+      const current = offenseData[name];
+      const newCount = current + change;
+
+      if (newCount >= 0 && newCount <= 10) {
+        offenseData[name] = newCount;
+        localStorage.setItem("offenseData", JSON.stringify(offenseData));
+        renderOffenseBlocks(name);
+
+        if (change === 1) {
+          if (newCount === 1) {
+            showToast(name === "Elsie" ? "Elsie, How did this happen" : `This might warrant some pushups, ${name}`);
+          } else if (newCount === 5) {
+            showToast(`HR now knows your location, ${name}`);
+          } else if (newCount === 10) {
+            showToast((name === "Justin" || name === "Loan") ?
+              "Well, Well, Well, how the turn tables" :
+              `Time for Baptism, ${name}. Please report to Justin and Loan for the Cleanse`);
+          }
+        }
+      }
+    }
+
     function baptizePerson(name) {
       const container = document.getElementById(`offense-${name}`);
       const blocks = Array.from(container.children);
 
       blocks.forEach((block, index) => {
-        setTimeout(() => {
-          block.classList.add("washed");
-        }, index * 80);
+        setTimeout(() => block.classList.add("washed"), index * 80);
       });
 
       setTimeout(() => {
@@ -285,6 +308,40 @@
         showToast(`${name} has been baptized and forgiven.`);
       }, blocks.length * 80 + 600);
     }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 3000);
+    }
+
+    function addPerson() {
+      const name = document.getElementById("nameInput").value.trim();
+      if (!name) {
+        showToast("Enter a valid name.");
+        return;
+      }
+      if (offenseData[name]) {
+        showToast(`${name} is already on the chart.`);
+        return;
+      }
+      offenseData[name] = 0;
+      renderTable();
+      showToast(`${name} has joined the chart!`);
+    }
+
+    function removePerson() {
+      const name = document.getElementById("nameInput").value.trim();
+      if (!name || !(name in offenseData)) {
+        showToast("Name not found.");
+        return;
+      }
+      delete offenseData[name];
+      renderTable();
+      showToast(`${name} has been removed from the chart.`);
+    }
+
+    initialize();
   </script>
 </body>
 </html>
